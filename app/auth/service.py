@@ -5,9 +5,7 @@ from .jwt_service import create_access_token
 
 
 async def register_user(email: str, password: str):
-    existing = await poolfetchrow(
-        "SELECT id FROM users WHERE email = $1;", email
-    )
+    existing = await poolfetchrow("SELECT id FROM users WHERE email = $1;", email)
     if existing:
         raise HTTPException(status_code=400, detail="Email already registered")
 
@@ -19,8 +17,11 @@ async def register_user(email: str, password: str):
         VALUES ($1, $2)
         RETURNING id, email;
         """,
-        email, hashed
+        email,
+        hashed,
     )
+    if row is None:
+        raise RuntimeError("Insert failed — no row returned")
 
     token = create_access_token({"sub": str(row["id"])})
     return token
@@ -28,8 +29,7 @@ async def register_user(email: str, password: str):
 
 async def login_user(email: str, password: str):
     user = await poolfetchrow(
-        "SELECT id, password_hash FROM users WHERE email = $1;",
-        email
+        "SELECT id, password_hash FROM users WHERE email = $1;", email
     )
     if not user:
         raise HTTPException(status_code=400, detail="Invalid credentials")
@@ -42,10 +42,7 @@ async def login_user(email: str, password: str):
 
 
 async def change_password(user_id: str, old_password: str, new_password: str):
-    user = await poolfetchrow(
-        "SELECT password_hash FROM users WHERE id = $1;",
-        user_id
-    )
+    user = await poolfetchrow("SELECT password_hash FROM users WHERE id = $1;", user_id)
 
     if not user or not verify_password(old_password, user["password_hash"]):
         raise HTTPException(status_code=400, detail="Incorrect current password")
@@ -53,6 +50,5 @@ async def change_password(user_id: str, old_password: str, new_password: str):
     new_hash = hash_password(new_password)
 
     await poolexecute(
-        "UPDATE users SET password_hash = $1 WHERE id = $2;",
-        new_hash, user_id
+        "UPDATE users SET password_hash = $1 WHERE id = $2;", new_hash, user_id
     )

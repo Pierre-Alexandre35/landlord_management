@@ -11,10 +11,13 @@ router = APIRouter(prefix="/auth", tags=["Auth"])
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 
-def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
+async def get_current_user_id(token: str = Depends(oauth2_scheme)) -> str:
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        return payload.get("sub")
+        sub = payload.get("sub")
+        if not sub:
+            raise HTTPException(status_code=401, detail="Invalid token payload")
+        return sub
     except JWTError:
         raise HTTPException(status_code=401, detail="Invalid or expired token")
 
@@ -33,8 +36,7 @@ async def login(data: LoginSchema):
 
 @router.post("/change-password")
 async def change_pw(
-    data: ChangePasswordSchema,
-    user_id: str = Depends(get_current_user_id)
+    data: ChangePasswordSchema, user_id: str = Depends(get_current_user_id)
 ):
     await change_password(user_id, data.old_password, data.new_password)
     return {"status": "Password updated successfully"}
