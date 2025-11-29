@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+gunicorn
+asyncpg
+
+python-jose[cryptography]
+passlib[argon2]
+argon2-cffi
+pydantic[email]
+email-validator
