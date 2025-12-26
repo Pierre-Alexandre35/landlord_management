@@ -1,20 +1,33 @@
 import { useState } from "react";
-import { TextField, Button, Stack } from "@mui/material";
-import { register } from "../api/auth";
+import { TextField, Button, Stack, Alert } from "@mui/material";
+import { login } from "../api/auth";
 
-export default function RegisterForm() {
+export default function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    await register(email, password);
-    alert("Registered!");
+    setError(null);
+    setLoading(true);
+
+    try {
+      await login(email, password);
+      alert("Logged in!");
+    } catch (err) {
+      setError("Invalid email or password");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (
     <form onSubmit={handleSubmit}>
       <Stack spacing={2}>
+        {error && <Alert severity="error">{error}</Alert>}
+
         <TextField
           label="Email"
           type="email"
@@ -33,8 +46,13 @@ export default function RegisterForm() {
           onChange={(e) => setPassword(e.target.value)}
         />
 
-        <Button type="submit" variant="contained" size="large">
-          Register
+        <Button
+          type="submit"
+          variant="contained"
+          size="large"
+          disabled={loading}
+        >
+          {loading ? "Signing in…" : "Login"}
         </Button>
       </Stack>
     </form>
